@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Amigo Secreto</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -159,6 +160,61 @@
             <button onclick="resetApp()" class="back-button">Cancelar</button>
         </div>
 
+                    <script>
+                    // ID de la hoja y rango
+                    const SHEET_ID = '1RnXD9rwLkhtzZ4htr8OU0Dvgy_ChwE-XwX-AISJr0dE';
+                    const SHEET1_NAME = 'Hoja1'; // Participantes y códigos
+                    const SHEET1_RANGE = 'A1:B'; // Nombre, Código
+                    const SHEET2_NAME = 'Hoja2'; // Asignaciones
+                    const SHEET2_RANGE = 'A1:B'; // Código, Asignado a
+
+                    function fetchAllData() {
+                        const url1 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET1_NAME}&range=${SHEET1_RANGE}`;
+                        Papa.parse(url1, {
+                            download: true,
+                            header: true,
+                            complete: function(results1) {
+                                const participants = results1.data;
+                                const url2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET2_NAME}&range=${SHEET2_RANGE}`;
+                                Papa.parse(url2, {
+                                    download: true,
+                                    header: true,
+                                    complete: function(results2) {
+                                        const assignments = results2.data;
+                                        mergeAndRender(participants, assignments);
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    function mergeAndRender(participants, assignments) {
+                        const assignMap = {};
+                        assignments.forEach(row => {
+                            if(row['Código'] && row['Asignado a']) {
+                                assignMap[row['Código']] = row['Asignado a'];
+                            }
+                        });
+                        const tbody = document.getElementById('participants-table-body');
+                        tbody.innerHTML = '';
+                        participants.forEach(row => {
+                            if(row['Nombre'] && row['Código']) {
+                                const asignado = assignMap[row['Código']] || '';
+                                tbody.innerHTML += `<tr>
+                                    <td class='nombre-participante'>${row['Nombre']}</td>
+                                    <td>${row['Código']}</td>
+                                    <td>${asignado}</td>
+                                </tr>`;
+                            }
+                        });
+                    }
+
+                    function showAdminSection() {
+                        document.getElementById('admin-section').classList.add('active');
+                        fetchAllData();
+                    }
+                    window.showAdminSection = showAdminSection;
+                    </script>
         <!-- Sección de Administrador -->
         <div id="admin-section" class="section">
             <h1>Panel de Administración</h1>
