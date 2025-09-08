@@ -33,8 +33,38 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             width: 90%;
             max-width: 500px;
-            padding: 30px;
+            overflow: hidden;
             text-align: center;
+        }
+        
+        .header {
+            background-color: #1d3bb8;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .logo-container {
+            background-color: white;
+            padding: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .logo {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .content {
+            padding: 30px;
         }
         
         h1 {
@@ -170,71 +200,142 @@
             background-color: #ffe6e6;
             color: #ff4b2b;
         }
+        
+        /* Animación de ruleta */
+        .roulette-container {
+            height: 100px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+            border: 2px solid #1d3bb8;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        
+        .roulette-wheel {
+            position: absolute;
+            width: 100%;
+            transition: top 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+        }
+        
+        .roulette-item {
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 1px dashed #ddd;
+        }
+        
+        .roulette-item.highlight {
+            background-color: #ffebee;
+            color: #ff1744;
+            font-size: 28px;
+            animation: pulse 0.5s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { background-color: #ffebee; }
+            to { background-color: #ffcdd2; }
+        }
+        
+        .result-name {
+            color: #ff1744;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #ffebee;
+            border-radius: 10px;
+            animation: pulse 0.5s infinite alternate;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Sección de Login -->
-        <div id="login-section" class="section active">
-            <h1>Amigo Secreto</h1>
-            <p class="info-text">Ingresa tu código único para descubrir a tu amigo secreto</p>
-            <input type="text" id="code-input" placeholder="Ingresa tu código">
-            <button onclick="checkCode()">Descubrir amigo</button>
-            <button onclick="showAdminLogin()" class="back-button">Acceso administrador</button>
-            
-            <div id="firebase-status" class="firebase-status disconnected">
-                Firebase: Conectando...
+        <!-- Header con logo -->
+        <div class="header">
+            <div class="logo-container">
+                <img src="logo.png" alt="Logo de la empresa" class="logo">
             </div>
         </div>
-
-        <!-- Sección de Resultado -->
-        <div id="result-section" class="section">
-            <h1>¡Resultado!</h1>
-            <div id="friend-result"></div>
-            <button onclick="resetApp()">Volver al inicio</button>
-        </div>
-
-        <!-- Sección de Login de Administrador -->
-        <div id="admin-login-section" class="section">
-            <h1>Acceso de Administrador</h1>
-            <p class="info-text">Ingresa la clave de administrador</p>
-            <input type="password" id="admin-password" placeholder="Clave de administrador">
-            <button onclick="checkAdminPassword()">Acceder</button>
-            <button onclick="resetApp()" class="back-button">Cancelar</button>
-        </div>
-
-        <!-- Sección de Administrador -->
-        <div id="admin-section" class="section">
-            <h1>Panel de Administración</h1>
-            <p class="info-text">Lista de participantes y sus códigos</p>
-            
-            <div id="firebase-status-admin" class="firebase-status disconnected">
-                Firebase: Conectando...
+        
+        <div class="content">
+            <!-- Sección de Login -->
+            <div id="login-section" class="section active">
+                <h1>Amigo Secreto</h1>
+                <p class="info-text">Ingresa tu código único para descubrir a tu amigo secreto</p>
+                <input type="text" id="code-input" placeholder="Ingresa tu código">
+                <button onclick="checkCode()">Descubrir amigo</button>
+                <button onclick="showAdminLogin()" class="back-button">Acceso administrador</button>
+                
+                <div id="firebase-status" class="firebase-status disconnected">
+                    Firebase: Conectando...
+                </div>
             </div>
-            
-            <div id="loading-message">Cargando datos...</div>
-            <div id="error-message" class="error-message" style="display: none;"></div>
-            <div id="success-message" class="success-message" style="display: none;"></div>
-            
-            <table style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Código</th>
-                        <th>Asignado a</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-table-body">
-                    <!-- Los datos se cargarán dinámicamente -->
-                </tbody>
-            </table>
-            
-            <div class="admin-options">
-                <button onclick="exportCodesExcel()">Exportar códigos a Excel</button>
-                <button onclick="exportFullExcel()">Exportar asignaciones a Excel</button>
-                <button onclick="clearAssignments()">Eliminar asignaciones</button>
-                <button onclick="reloadParticipants()">Recargar participantes</button>
-                <button onclick="resetApp()" class="back-button">Volver al inicio</button>
+
+            <!-- Sección de Ruleta -->
+            <div id="roulette-section" class="section">
+                <h1>¡Descubriendo a tu amigo secreto!</h1>
+                <div class="roulette-container">
+                    <div class="roulette-wheel" id="roulette-wheel">
+                        <!-- Los elementos de la ruleta se generarán dinámicamente -->
+                    </div>
+                </div>
+                <div id="roulette-result"></div>
+            </div>
+
+            <!-- Sección de Resultado -->
+            <div id="result-section" class="section">
+                <h1>¡Resultado!</h1>
+                <div id="friend-result"></div>
+                <button onclick="resetApp()">Volver al inicio</button>
+            </div>
+
+            <!-- Sección de Login de Administrador -->
+            <div id="admin-login-section" class="section">
+                <h1>Acceso de Administrador</h1>
+                <p class="info-text">Ingresa la clave de administrador</p>
+                <input type="password" id="admin-password" placeholder="Clave de administrador">
+                <button onclick="checkAdminPassword()">Acceder</button>
+                <button onclick="resetApp()" class="back-button">Cancelar</button>
+            </div>
+
+            <!-- Sección de Administrador -->
+            <div id="admin-section" class="section">
+                <h1>Panel de Administración</h1>
+                <p class="info-text">Lista de participantes y sus códigos</p>
+                
+                <div id="firebase-status-admin" class="firebase-status disconnected">
+                    Firebase: Conectando...
+                </div>
+                
+                <div id="loading-message">Cargando datos...</div>
+                <div id="error-message" class="error-message" style="display: none;"></div>
+                <div id="success-message" class="success-message" style="display: none;"></div>
+                
+                <table style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Código</th>
+                            <th>Asignado a</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-table-body">
+                        <!-- Los datos se cargarán dinámicamente -->
+                    </tbody>
+                </table>
+                
+                <div class="admin-options">
+                    <button onclick="exportCodesExcel()">Exportar códigos a Excel</button>
+                    <button onclick="exportFullExcel()">Exportar asignaciones a Excel</button>
+                    <button onclick="clearAssignments()">Eliminar asignaciones</button>
+                    <button onclick="reloadParticipants()">Recargar participantes</button>
+                    <button onclick="resetApp()" class="back-button">Volver al inicio</button>
+                </div>
             </div>
         </div>
     </div>
@@ -306,6 +407,7 @@
         // Variables globales
         let assignments = {};
         let allParticipants = [];
+        let currentParticipant = null;
 
         // =============================================
         // FUNCIONES DE FIREBASE
@@ -537,9 +639,10 @@
             const participant = allParticipants.find(p => p.code === codeInput);
             
             if (participant) {
+                currentParticipant = participant;
                 if (assignments[participant.name]) {
-                    // Mostrar amigo secreto ya asignado
-                    showResult(assignments[participant.name]);
+                    // Mostrar animación de ruleta
+                    showRouletteAnimation(assignments[participant.name]);
                 } else {
                     // Asignar nuevo amigo secreto
                     await assignSecretFriend(participant, allParticipants);
@@ -547,6 +650,65 @@
             } else {
                 showError('Código inválido. Intenta nuevamente.');
             }
+        }
+
+        // Mostrar animación de ruleta
+        function showRouletteAnimation(friendName) {
+            showSection('roulette-section');
+            
+            const rouletteWheel = document.getElementById('roulette-wheel');
+            rouletteWheel.innerHTML = '';
+            
+            // Crear elementos de la ruleta con nombres aleatorios
+            const allNames = allParticipants.map(p => p.name);
+            const randomNames = [];
+            
+            // Añadir algunos nombres aleatorios
+            for (let i = 0; i < 20; i++) {
+                const randomIndex = Math.floor(Math.random() * allNames.length);
+                randomNames.push(allNames[randomIndex]);
+            }
+            
+            // Añadir el nombre real al final
+            randomNames.push(friendName);
+            
+            // Crear elementos de la ruleta
+            randomNames.forEach((name, index) => {
+                const item = document.createElement('div');
+                item.className = 'roulette-item';
+                if (index === randomNames.length - 1) {
+                    item.classList.add('highlight');
+                }
+                item.textContent = name;
+                rouletteWheel.appendChild(item);
+            });
+            
+            // Calcular la posición final para que el nombre real quede en el centro
+            const itemHeight = 100; // altura de cada elemento
+            const finalPosition = -(itemHeight * (randomNames.length - 1));
+            
+            // Iniciar la animación
+            setTimeout(() => {
+                rouletteWheel.style.top = finalPosition + 'px';
+                
+                // Mostrar el resultado después de la animación
+                setTimeout(() => {
+                    const resultDiv = document.getElementById('roulette-result');
+                    resultDiv.innerHTML = `
+                        <div class="result-name">¡Tu amigo secreto es: ${friendName}!</div>
+                    `;
+                    
+                    // Registrar evento en analytics
+                    analytics.logEvent('secret_friend_revealed', {
+                        friend_name: friendName
+                    });
+                    
+                    // Mostrar el resultado final después de un breve momento
+                    setTimeout(() => {
+                        showResult(friendName);
+                    }, 2000);
+                }, 4000);
+            }, 100);
         }
 
         // Mostrar resultado
@@ -559,14 +721,9 @@
             msg.style.marginTop = '18px';
             msg.style.fontSize = '22px';
             msg.style.fontWeight = 'bold';
-            msg.style.color = '#1d3bb8';
+            msg.style.color = '#ff1744';
             resultDiv.appendChild(msg);
             showSection('result-section');
-            
-            // Registrar evento en analytics
-            analytics.logEvent('secret_friend_revealed', {
-                friend_name: friendName
-            });
         }
 
         // Asignar amigo secreto
@@ -602,7 +759,7 @@
             
             // Mostrar resultado para el participante actual
             if (assignments[participant.name]) {
-                showResult(assignments[participant.name]);
+                showRouletteAnimation(assignments[participant.name]);
             } else {
                 showError('No hay asignación disponible para este participante.');
             }
