@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Amigo Secreto</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        button {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        #friend-result {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1d3bb8;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 10px;
+        }
+        
+        .admin-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .admin-options button {
+            width: 100%;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        .back-button {
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+        }
+        
+        .info-text {
+            color: #666;
+        
+        td.nombre-participante {
+            background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sección de Login -->
+        <div id="login-section" class="section active">
+            <div style="margin-bottom: 15px;">
+                <div style="background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%); border-radius: 16px; padding: 18px 0; width: 100%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 16px rgba(106,17,203,0.12); margin-bottom: 10px;">
+                    <img src="logo.png" alt="Logo de la empresa" style="max-width: 320px; width: 80%; min-width: 120px; height: auto; display: block;" />
+                </div>
+            </div>
+            <h1>Amigo Secreto</h1>
+            <p class="info-text">Ingresa tu código único para descubrir a tu amigo secreto</p>
+            <input type="text" id="code-input" placeholder="Ingresa tu código">
+            <button onclick="checkCode()">Descubrir amigo</button>
+            <button onclick="showAdminLogin()" class="back-button">Acceso administrador</button>
+        </div>
+
+        <!-- Sección de Resultado -->
+        <div id="result-section" class="section">
+            <h1>¡Resultado!</h1>
+            <div id="friend-result"></div>
+            <button onclick="resetApp()">Volver al inicio</button>
+        </div>
+
+        <!-- Sección de Login de Administrador -->
+        <div id="admin-login-section" class="section">
+            <h1>Acceso de Administrador</h1>
+            <p class="info-text">Ingresa la clave de administrador</p>
+            <input type="password" id="admin-password" placeholder="Clave de administrador">
+            <button onclick="checkAdminPassword()">Acceder</button>
+            <button onclick="resetApp()" class="back-button">Cancelar</button>
+        </div>
+
+                    <script>
+                    // ID de la hoja y rango
+                    const SHEET_ID = '1RnXD9rwLkhtzZ4htr8OU0Dvgy_ChwE-XwX-AISJr0dE';
+                    const SHEET1_NAME = 'Hoja1'; // Participantes y códigos
+                    const SHEET1_RANGE = 'A1:B'; // Nombre, Código
+                    const SHEET2_NAME = 'Hoja2'; // Asignaciones
+                    const SHEET2_RANGE = 'A1:B'; // Código, Asignado a
+
+                    function fetchAllData() {
+                        const url1 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET1_NAME}&range=${SHEET1_RANGE}`;
+                        Papa.parse(url1, {
+                            download: true,
+                            header: true,
+                            complete: function(results1) {
+                                const participants = results1.data;
+                                const url2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET2_NAME}&range=${SHEET2_RANGE}`;
+                                Papa.parse(url2, {
+                                    download: true,
+                                    header: true,
+                                    complete: function(results2) {
+                                        const assignments = results2.data;
+                                        mergeAndRender(participants, assignments);
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    function mergeAndRender(participants, assignments) {
+                        const assignMap = {};
+                        assignments.forEach(row => {
+                            if(row['Código'] && row['Asignado a']) {
+                                assignMap[row['Código']] = row['Asignado a'];
+                            }
+                        });
+                        const tbody = document.getElementById('participants-table-body');
+                        tbody.innerHTML = '';
+                        participants.forEach(row => {
+                            if(row['Nombre'] && row['Código']) {
+                                const asignado = assignMap[row['Código']] || '';
+                                tbody.innerHTML += `<tr>
+                                    <td class='nombre-participante'>${row['Nombre']}</td>
+                                    <td>${row['Código']}</td>
+                                    <td>${asignado}</td>
+                                </tr>`;
+                            }
+                        });
+                    }
+
+                    function showAdminSection() {
+                        document.getElementById('admin-section').classList.add('active');
+                        fetchAllData();
+                    }
+                    window.showAdminSection = showAdminSection;
+                    </script>
+        <!-- Sección de Administrador -->
+        <div id="admin-section" class="section">
+            <h1>Panel de Administración</h1>
+            <p class="info-text">Lista de participantes y sus códigos</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                        <th>Asignado a</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                    <!-- Los datos se cargarán dinámicamente -->
+                        <!-- Ejemplo de fila con fondo azul degradado en el nombre -->
+                        <tr>
+                            <td class="nombre-participante">Juan</td>
+                            <td>12345</td>
+                            <td>Pedro</td>
+                        </tr>
+                </tbody>
+            </table>
+            
+            <div class="admin-options">
+                <button onclick="exportCodesExcel()">Exportar códigos a Excel</button>
+                <button onclick="exportFullExcel()">Exportar asignaciones a Excel</button>
+                <button onclick="clearAssignments()">Eliminar asignaciones</button>
+                <button onclick="reloadParticipants()">Recargar participantes</button>
+                <button onclick="resetApp()" class="back-button">Volver al inicio</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Los datos de participantes y asignaciones se obtienen solo desde Google Sheets
+            { name: "Sebastian", gender: "hombre", code: "" },
+            { name: "Juan Camilo", gender: "hombre", code: "" },
+            { name: "Luis Rodriguez", gender: "hombre", code: "" },
+            { name: "Claudia Gonzales", gender: "mujer", code: "" }
+        ];
+
+        // Clave de administrador
+        const ADMIN_PASSWORD = "MWSOLUTIONDIAZ2025";
+
+        // Asignaciones
+        let assignments = {};
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar si ya se generaron códigos
+            if (!localStorage.getItem('codesGenerated')) {
+                generateUniqueCodes();
+            }
+            
+            // Cargar asignaciones si existen
+            if (localStorage.getItem('assignments')) {
+                assignments = JSON.parse(localStorage.getItem('assignments'));
+            }
+            
+            // Mostrar la sección de login por defecto
+            showSection('login-section');
+        });
+
+        // Generar códigos únicos para cada participante
+        function generateUniqueCodes() {
+            const codes = new Set();
+            
+            participants.forEach(participant => {
+                let code;
+                do {
+                    // Generar código alfanumérico de 6 caracteres
+                    code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                } while (codes.has(code));
+                
+                codes.add(code);
+                participant.code = code;
+            });
+            
+            // Guardar en localStorage
+            localStorage.setItem('participants', JSON.stringify(participants));
+            localStorage.setItem('codesGenerated', 'true');
+        }
+
+        // Recargar lista de participantes y limpiar localStorage
+        function reloadParticipants() {
+            localStorage.clear();
+            generateUniqueCodes();
+            assignments = {};
+            showAdminPanel();
+            alert('Lista de participantes recargada. Si eliminaste alguno, ya no aparecerá.');
+        }
+
+        // Cargar participantes desde localStorage
+        function getParticipants() {
+            const storedParticipants = localStorage.getItem('participants');
+            return storedParticipants ? JSON.parse(storedParticipants) : participants;
+        }
+
+        // Mostrar sección específica
+        function showSection(sectionId) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Mostrar la sección solicitada
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        // Verificar código y mostrar amigo secreto
+        function checkCode() {
+            const codeInput = document.getElementById('code-input').value.trim();
+            const participants = getParticipants();
+            const participant = participants.find(p => p.code === codeInput);
+            
+            if (participant) {
+                if (assignments[participant.name]) {
+                    // Mostrar amigo secreto ya asignado
+                    showResult(assignments[participant.name]);
+                } else {
+                    // Asignar nuevo amigo secreto
+                    assignSecretFriend(participant, participants);
+                }
+            } else {
+                alert('Código inválido. Intenta nuevamente.');
+            }
+        }
+
+        // Mostrar resultado
+        function showResult(friendName) {
+            // Mostrar resultado directo y claro
+            const resultDiv = document.getElementById('friend-result');
+            resultDiv.innerHTML = '';
+            const msg = document.createElement('div');
+            msg.textContent = `¡Tu amigo secreto es: ${friendName}!`;
+            msg.style.marginTop = '18px';
+            msg.style.fontSize = '22px';
+            msg.style.fontWeight = 'bold';
+            msg.style.color = '#1d3bb8';
+            resultDiv.appendChild(msg);
+            showSection('result-section');
+        }
+
+        // Asignar amigo secreto - LÓGICA CORREGIDA
+        function assignSecretFriend(participant, participants) {
+            if (Object.keys(assignments).length === 0) {
+                // Separar por género
+                let mujeres = participants.filter(p => p.gender === 'mujer');
+                let hombres = participants.filter(p => p.gender === 'hombre');
+                
+                // Mezclar aleatoriamente
+                shuffleArray(mujeres);
+                shuffleArray(hombres);
+                
+                // 1. Asignar a cada mujer un hombre diferente (12 mujeres -> 12 hombres)
+                for (let i = 0; i < mujeres.length; i++) {
+                    assignments[mujeres[i].name] = hombres[i].name;
+                }
+                
+                // 2. Asignar a los primeros 12 hombres una mujer diferente
+                // Mezclar nuevamente para aleatorizar
+                shuffleArray(mujeres);
+                for (let i = 0; i < mujeres.length; i++) {
+                    assignments[hombres[i].name] = mujeres[i].name;
+                }
+                
+                // 3. Los 2 hombres restantes se asignan entre sí
+                assignments[hombres[12].name] = hombres[13].name;
+                assignments[hombres[13].name] = hombres[12].name;
+                
+                // Guardar asignaciones
+                localStorage.setItem('assignments', JSON.stringify(assignments));
+            }
+            
+            // Mostrar resultado para el participante actual
+            if (assignments[participant.name]) {
+                showResult(assignments[participant.name]);
+            } else {
+                alert('No hay asignación disponible para este participante.');
+            }
+        }
+
+        // Función para mezclar un array (algoritmo Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Mostrar login de administrador
+        function showAdminLogin() {
+            showSection('admin-login-section');
+        }
+
+        // Verificar contraseña de administrador
+        function checkAdminPassword() {
+            const password = document.getElementById('admin-password').value;
+            if (password === ADMIN_PASSWORD) {
+                showAdminPanel();
+            } else {
+                alert("Clave de administrador incorrecta");
+            }
+        }
+
+        // Mostrar panel de administración
+        function showAdminPanel() {
+            const participants = getParticipants();
+            const tableBody = document.getElementById('admin-table-body');
+            tableBody.innerHTML = '';
+            
+            // Llenar la tabla con los participantes y sus códigos
+            participants.forEach(participant => {
+                const row = document.createElement('tr');
+                
+                const nameCell = document.createElement('td');
+                nameCell.textContent = participant.name;
+                row.appendChild(nameCell);
+                
+                const codeCell = document.createElement('td');
+                codeCell.textContent = participant.code;
+                row.appendChild(codeCell);
+                
+                const assignmentCell = document.createElement('td');
+                assignmentCell.textContent = assignments[participant.name] || 'No asignado';
+                row.appendChild(assignmentCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            showSection('admin-section');
+        }
+
+        // Eliminar todas las asignaciones
+        function clearAssignments() {
+            assignments = {};
+            localStorage.removeItem('assignments');
+            showAdminPanel();
+        }
+
+        // Exportar solo códigos a Excel
+        function exportCodesExcel() {
+            const participants = getParticipants();
+            // Usar SheetJS para exportar a xlsx
+            const data = participants.map(p => ({ Nombre: p.name, Código: p.code }));
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Códigos");
+            XLSX.writeFile(wb, "codigos_amigo_secreto.xlsx");
+        }
+
+        // Exportar nombre, código y asignado a Excel
+        function exportFullExcel() {
+            const participants = getParticipants();
+            // Usar SheetJS para exportar a xlsx
+            const data = participants.map(p => ({
+                Nombre: p.name,
+                Código: p.code,
+                Asignado: assignments[p.name] || ''
+            }));
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Asignaciones");
+            XLSX.writeFile(wb, "asignaciones_amigo_secreto.xlsx");
+        }
+
+        // Resetear la aplicación
+        function resetApp() {
+            document.getElementById('code-input').value = '';
+            document.getElementById('admin-password').value = '';
+            showSection('login-section');
+        }
+    </script>
+</body>
+</html>
