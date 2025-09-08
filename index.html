@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Amigo Secreto</title>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-analytics-compat.js"></script>
+    <!-- SheetJS para exportar a Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -116,15 +120,55 @@
         
         .info-text {
             color: #666;
-        
-        td.nombre-participante {
-            background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
-            color: white;
-            font-weight: bold;
-            border-radius: 8px;
-        }
             margin-bottom: 20px;
             font-size: 16px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            color: #ff4b2b;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #ffe6e6;
+            border-radius: 5px;
+        }
+        
+        .success-message {
+            color: #2bff42;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e6ffe6;
+            border-radius: 5px;
+        }
+        
+        .firebase-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .connected {
+            background-color: #e6ffe6;
+            color: #2bff42;
+        }
+        
+        .disconnected {
+            background-color: #ffe6e6;
+            color: #ff4b2b;
         }
     </style>
 </head>
@@ -132,16 +176,15 @@
     <div class="container">
         <!-- Sección de Login -->
         <div id="login-section" class="section active">
-            <div style="margin-bottom: 15px;">
-                <div style="background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%); border-radius: 16px; padding: 18px 0; width: 100%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 16px rgba(106,17,203,0.12); margin-bottom: 10px;">
-                    <img src="logo.png" alt="Logo de la empresa" style="max-width: 320px; width: 80%; min-width: 120px; height: auto; display: block;" />
-                </div>
-            </div>
             <h1>Amigo Secreto</h1>
             <p class="info-text">Ingresa tu código único para descubrir a tu amigo secreto</p>
             <input type="text" id="code-input" placeholder="Ingresa tu código">
             <button onclick="checkCode()">Descubrir amigo</button>
             <button onclick="showAdminLogin()" class="back-button">Acceso administrador</button>
+            
+            <div id="firebase-status" class="firebase-status disconnected">
+                Firebase: Conectando...
+            </div>
         </div>
 
         <!-- Sección de Resultado -->
@@ -160,67 +203,20 @@
             <button onclick="resetApp()" class="back-button">Cancelar</button>
         </div>
 
-                    <script>
-                    // ID de la hoja y rango
-                    const SHEET_ID = '1RnXD9rwLkhtzZ4htr8OU0Dvgy_ChwE-XwX-AISJr0dE';
-                    const SHEET1_NAME = 'Hoja1'; // Participantes y códigos
-                    const SHEET1_RANGE = 'A1:B'; // Nombre, Código
-                    const SHEET2_NAME = 'Hoja2'; // Asignaciones
-                    const SHEET2_RANGE = 'A1:B'; // Código, Asignado a
-
-                    function fetchAllData() {
-                        const url1 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET1_NAME}&range=${SHEET1_RANGE}`;
-                        Papa.parse(url1, {
-                            download: true,
-                            header: true,
-                            complete: function(results1) {
-                                const participants = results1.data;
-                                const url2 = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET2_NAME}&range=${SHEET2_RANGE}`;
-                                Papa.parse(url2, {
-                                    download: true,
-                                    header: true,
-                                    complete: function(results2) {
-                                        const assignments = results2.data;
-                                        mergeAndRender(participants, assignments);
-                                    }
-                                });
-                            }
-                        });
-                    }
-
-                    function mergeAndRender(participants, assignments) {
-                        const assignMap = {};
-                        assignments.forEach(row => {
-                            if(row['Código'] && row['Asignado a']) {
-                                assignMap[row['Código']] = row['Asignado a'];
-                            }
-                        });
-                        const tbody = document.getElementById('participants-table-body');
-                        tbody.innerHTML = '';
-                        participants.forEach(row => {
-                            if(row['Nombre'] && row['Código']) {
-                                const asignado = assignMap[row['Código']] || '';
-                                tbody.innerHTML += `<tr>
-                                    <td class='nombre-participante'>${row['Nombre']}</td>
-                                    <td>${row['Código']}</td>
-                                    <td>${asignado}</td>
-                                </tr>`;
-                            }
-                        });
-                    }
-
-                    function showAdminSection() {
-                        document.getElementById('admin-section').classList.add('active');
-                        fetchAllData();
-                    }
-                    window.showAdminSection = showAdminSection;
-                    </script>
         <!-- Sección de Administrador -->
         <div id="admin-section" class="section">
             <h1>Panel de Administración</h1>
             <p class="info-text">Lista de participantes y sus códigos</p>
             
-            <table>
+            <div id="firebase-status-admin" class="firebase-status disconnected">
+                Firebase: Conectando...
+            </div>
+            
+            <div id="loading-message">Cargando datos...</div>
+            <div id="error-message" class="error-message" style="display: none;"></div>
+            <div id="success-message" class="success-message" style="display: none;"></div>
+            
+            <table style="display: none;">
                 <thead>
                     <tr>
                         <th>Nombre</th>
@@ -230,12 +226,6 @@
                 </thead>
                 <tbody id="admin-table-body">
                     <!-- Los datos se cargarán dinámicamente -->
-                        <!-- Ejemplo de fila con fondo azul degradado en el nombre -->
-                        <tr>
-                            <td class="nombre-participante">Juan</td>
-                            <td>12345</td>
-                            <td>Pedro</td>
-                        </tr>
                 </tbody>
             </table>
             
@@ -250,8 +240,38 @@
     </div>
 
     <script>
-        // Datos de participantes
-        const participants = [
+        // =============================================
+        // CONFIGURACIÓN DE FIREBASE (CON TUS DATOS)
+        // =============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCnDQLKYlThT3yUzh02xYOlOPPs1kd0fRc",
+            authDomain: "amigosecreto-babb3.firebaseapp.com",
+            projectId: "amigosecreto-babb3",
+            storageBucket: "amigosecreto-babb3.firebasestorage.app",
+            messagingSenderId: "83114307483",
+            appId: "1:83114307483:web:891e5b3a0db3227b5cfb3e",
+            measurementId: "G-YQ01R8E013"
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const analytics = firebase.analytics();
+        const db = firebase.firestore();
+        
+        // Verificar conexión a Firebase
+        db.enablePersistence()
+          .then(() => {
+              updateFirebaseStatus('connected', 'Firebase: Conectado correctamente');
+          })
+          .catch((err) => {
+              console.error("Error con Firebase Persistence:", err);
+              updateFirebaseStatus('disconnected', 'Firebase: Modo sin conexión');
+          });
+        
+        // =============================================
+        // DATOS INICIALES
+        // =============================================
+        const initialParticipants = [
             { name: "Yajaira", gender: "mujer", code: "" },
             { name: "Yesika", gender: "mujer", code: "" },
             { name: "Levis", gender: "mujer", code: "" },
@@ -283,30 +303,212 @@
         // Clave de administrador
         const ADMIN_PASSWORD = "MWSOLUTIONDIAZ2025";
 
-        // Asignaciones
+        // Variables globales
         let assignments = {};
+        let allParticipants = [];
 
+        // =============================================
+        // FUNCIONES DE FIREBASE
+        // =============================================
+        
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
-            // Verificar si ya se generaron códigos
-            if (!localStorage.getItem('codesGenerated')) {
-                generateUniqueCodes();
-            }
-            
-            // Cargar asignaciones si existen
-            if (localStorage.getItem('assignments')) {
-                assignments = JSON.parse(localStorage.getItem('assignments'));
-            }
+            // Cargar participantes y asignaciones desde Firebase
+            loadFromFirebase();
             
             // Mostrar la sección de login por defecto
             showSection('login-section');
         });
 
+        // Función para actualizar estado de Firebase
+        function updateFirebaseStatus(status, message) {
+            const statusElement = document.getElementById('firebase-status');
+            const adminStatusElement = document.getElementById('firebase-status-admin');
+            
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = `firebase-status ${status}`;
+            }
+            
+            if (adminStatusElement) {
+                adminStatusElement.textContent = message;
+                adminStatusElement.className = `firebase-status ${status}`;
+            }
+        }
+
+        // Función para cargar datos desde Firebase
+        async function loadFromFirebase() {
+            try {
+                updateFirebaseStatus('disconnected', 'Firebase: Cargando datos...');
+                
+                // Cargar participantes
+                const snapshot = await db.collection('participants').get();
+                
+                if (!snapshot.empty) {
+                    allParticipants = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateFirebaseStatus('connected', 'Firebase: Datos cargados correctamente');
+                } else {
+                    // Si no hay participantes, generar códigos y guardar
+                    allParticipants = initialParticipants.map(p => ({ ...p }));
+                    generateUniqueCodes();
+                    await saveParticipantsToFirebase();
+                }
+                
+                // Cargar asignaciones
+                const assignSnapshot = await db.collection('assignments').get();
+                assignments = {};
+                
+                if (!assignSnapshot.empty) {
+                    assignSnapshot.docs.forEach(doc => {
+                        assignments[doc.id] = doc.data().assignedTo;
+                    });
+                } else {
+                    assignments = {};
+                }
+                
+            } catch (error) {
+                console.error("Error cargando desde Firebase:", error);
+                updateFirebaseStatus('disconnected', 'Firebase: Error cargando datos. Usando modo local.');
+                
+                // Usar datos locales como fallback
+                allParticipants = initialParticipants.map(p => ({ ...p }));
+                generateUniqueCodes();
+            }
+        }
+
+        // Función para guardar participantes en Firebase
+        async function saveParticipantsToFirebase() {
+            try {
+                // Eliminar participantes existentes
+                const snapshot = await db.collection('participants').get();
+                const batch = db.batch();
+                
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                
+                // Agregar nuevos participantes
+                const newBatch = db.batch();
+                allParticipants.forEach(participant => {
+                    const ref = db.collection('participants').doc();
+                    newBatch.set(ref, {
+                        name: participant.name,
+                        gender: participant.gender,
+                        code: participant.code
+                    });
+                });
+                
+                await newBatch.commit();
+                showSuccess('Participantes guardados en Firebase correctamente');
+                
+            } catch (error) {
+                console.error("Error guardando participantes:", error);
+                showError("Error guardando en Firebase. Los datos se mantendrán localmente.");
+            }
+        }
+
+        // Función para guardar asignaciones en Firebase
+        async function saveAssignmentsToFirebase() {
+            try {
+                // Eliminar asignaciones existentes
+                const snapshot = await db.collection('assignments').get();
+                const batch = db.batch();
+                
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                
+                // Agregar nuevas asignaciones
+                const newBatch = db.batch();
+                for (const [name, assignedTo] of Object.entries(assignments)) {
+                    const ref = db.collection('assignments').doc(name);
+                    newBatch.set(ref, { assignedTo });
+                }
+                
+                await newBatch.commit();
+                showSuccess('Asignaciones guardadas en Firebase correctamente');
+                
+            } catch (error) {
+                console.error("Error guardando asignaciones:", error);
+                showError("Error guardando asignaciones en Firebase. Los datos se mantendrán localmente.");
+            }
+        }
+
+        // =============================================
+        // FUNCIONES DE LA APLICACIÓN
+        // =============================================
+        
+        // Mostrar mensaje de error
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Mostrar mensaje de éxito
+        function showSuccess(message) {
+            const successElement = document.getElementById('success-message');
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+            
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                successElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Recargar lista de participantes y limpiar asignaciones
+        async function reloadParticipants() {
+            if (confirm('¿Estás seguro de que quieres recargar todos los participantes? Esto generará nuevos códigos y eliminará las asignaciones.')) {
+                assignments = {};
+                generateUniqueCodes();
+                
+                try {
+                    await saveParticipantsToFirebase();
+                    await clearAssignmentsInFirebase();
+                    
+                    showAdminPanel();
+                    showSuccess('Lista de participantes recargada correctamente');
+                    
+                } catch (error) {
+                    console.error("Error recargando participantes:", error);
+                    showError("Error al recargar participantes. Verifica la conexión.");
+                }
+            }
+        }
+
+        // Limpiar asignaciones en Firebase
+        async function clearAssignmentsInFirebase() {
+            try {
+                const snapshot = await db.collection('assignments').get();
+                const batch = db.batch();
+                
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                
+            } catch (error) {
+                console.error("Error limpiando asignaciones:", error);
+                throw error;
+            }
+        }
+
         // Generar códigos únicos para cada participante
         function generateUniqueCodes() {
             const codes = new Set();
             
-            participants.forEach(participant => {
+            allParticipants.forEach(participant => {
                 let code;
                 do {
                     // Generar código alfanumérico de 6 caracteres
@@ -316,25 +518,6 @@
                 codes.add(code);
                 participant.code = code;
             });
-            
-            // Guardar en localStorage
-            localStorage.setItem('participants', JSON.stringify(participants));
-            localStorage.setItem('codesGenerated', 'true');
-        }
-
-        // Recargar lista de participantes y limpiar localStorage
-        function reloadParticipants() {
-            localStorage.clear();
-            generateUniqueCodes();
-            assignments = {};
-            showAdminPanel();
-            alert('Lista de participantes recargada. Si eliminaste alguno, ya no aparecerá.');
-        }
-
-        // Cargar participantes desde localStorage
-        function getParticipants() {
-            const storedParticipants = localStorage.getItem('participants');
-            return storedParticipants ? JSON.parse(storedParticipants) : participants;
         }
 
         // Mostrar sección específica
@@ -349,10 +532,9 @@
         }
 
         // Verificar código y mostrar amigo secreto
-        function checkCode() {
+        async function checkCode() {
             const codeInput = document.getElementById('code-input').value.trim();
-            const participants = getParticipants();
-            const participant = participants.find(p => p.code === codeInput);
+            const participant = allParticipants.find(p => p.code === codeInput);
             
             if (participant) {
                 if (assignments[participant.name]) {
@@ -360,10 +542,10 @@
                     showResult(assignments[participant.name]);
                 } else {
                     // Asignar nuevo amigo secreto
-                    assignSecretFriend(participant, participants);
+                    await assignSecretFriend(participant, allParticipants);
                 }
             } else {
-                alert('Código inválido. Intenta nuevamente.');
+                showError('Código inválido. Intenta nuevamente.');
             }
         }
 
@@ -380,10 +562,15 @@
             msg.style.color = '#1d3bb8';
             resultDiv.appendChild(msg);
             showSection('result-section');
+            
+            // Registrar evento en analytics
+            analytics.logEvent('secret_friend_revealed', {
+                friend_name: friendName
+            });
         }
 
-        // Asignar amigo secreto - LÓGICA CORREGIDA
-        function assignSecretFriend(participant, participants) {
+        // Asignar amigo secreto
+        async function assignSecretFriend(participant, participants) {
             if (Object.keys(assignments).length === 0) {
                 // Separar por género
                 let mujeres = participants.filter(p => p.gender === 'mujer');
@@ -409,15 +596,15 @@
                 assignments[hombres[12].name] = hombres[13].name;
                 assignments[hombres[13].name] = hombres[12].name;
                 
-                // Guardar asignaciones
-                localStorage.setItem('assignments', JSON.stringify(assignments));
+                // Guardar asignaciones en Firebase
+                await saveAssignmentsToFirebase();
             }
             
             // Mostrar resultado para el participante actual
             if (assignments[participant.name]) {
                 showResult(assignments[participant.name]);
             } else {
-                alert('No hay asignación disponible para este participante.');
+                showError('No hay asignación disponible para este participante.');
             }
         }
 
@@ -440,18 +627,25 @@
             if (password === ADMIN_PASSWORD) {
                 showAdminPanel();
             } else {
-                alert("Clave de administrador incorrecta");
+                showError("Clave de administrador incorrecta");
             }
         }
 
         // Mostrar panel de administración
-        function showAdminPanel() {
-            const participants = getParticipants();
+        async function showAdminPanel() {
+            // Mostrar mensaje de carga
+            document.getElementById('loading-message').style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+            document.querySelector('table').style.display = 'none';
+            
+            // Cargar datos más recientes desde Firebase
+            await loadFromFirebase();
+            
             const tableBody = document.getElementById('admin-table-body');
             tableBody.innerHTML = '';
             
             // Llenar la tabla con los participantes y sus códigos
-            participants.forEach(participant => {
+            allParticipants.forEach(participant => {
                 const row = document.createElement('tr');
                 
                 const nameCell = document.createElement('td');
@@ -469,21 +663,35 @@
                 tableBody.appendChild(row);
             });
             
+            // Ocultar mensaje de carga y mostrar tabla
+            document.getElementById('loading-message').style.display = 'none';
+            document.querySelector('table').style.display = 'table';
+            
             showSection('admin-section');
         }
 
         // Eliminar todas las asignaciones
-        function clearAssignments() {
-            assignments = {};
-            localStorage.removeItem('assignments');
-            showAdminPanel();
+        async function clearAssignments() {
+            if (confirm('¿Estás seguro de que quieres eliminar todas las asignaciones? Esto permitirá realizar nuevas asignaciones.')) {
+                assignments = {};
+                
+                // Limpiar asignaciones en Firebase
+                try {
+                    await clearAssignmentsInFirebase();
+                    showAdminPanel();
+                    showSuccess('Asignaciones eliminadas correctamente.');
+                    
+                } catch (error) {
+                    console.error("Error limpiando asignaciones:", error);
+                    showError("Error al eliminar asignaciones. Verifica la conexión.");
+                }
+            }
         }
 
         // Exportar solo códigos a Excel
         function exportCodesExcel() {
-            const participants = getParticipants();
             // Usar SheetJS para exportar a xlsx
-            const data = participants.map(p => ({ Nombre: p.name, Código: p.code }));
+            const data = allParticipants.map(p => ({ Nombre: p.name, Código: p.code }));
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Códigos");
@@ -492,9 +700,8 @@
 
         // Exportar nombre, código y asignado a Excel
         function exportFullExcel() {
-            const participants = getParticipants();
             // Usar SheetJS para exportar a xlsx
-            const data = participants.map(p => ({
+            const data = allParticipants.map(p => ({
                 Nombre: p.name,
                 Código: p.code,
                 Asignado: assignments[p.name] || ''
